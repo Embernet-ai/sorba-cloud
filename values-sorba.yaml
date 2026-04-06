@@ -1,0 +1,105 @@
+# ═══════════════════════════════════════════════════════════════════════
+# SORBA Cloud — Upstream Deployment Values Template
+# ═══════════════════════════════════════════════════════════════════════
+# This file is used with the SORBA Cloud OCI chart directly:
+#
+#   helm registry login sorbaregistry.azurecr.io -u <USERNAME> -p <TOKEN>
+#
+#   export TENANT=<your_tenant>
+#   helm -n $TENANT upgrade $TENANT \
+#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.3.0 \
+#     -i --create-namespace -f values-sorba.yaml
+#
+# After deploying the upstream chart, deploy the EmberNET bridge:
+#   helm install sorba-cloud-bridge charts/sorba-cloud -n $TENANT \
+#     --set sorba.domain=<domain> --set sorba.tenant=<tenant>
+#
+# Reference: SORBA Cloud Helm Chart Deployment Guide
+# ═══════════════════════════════════════════════════════════════════════
+
+global:
+  # ── REQUIRED ────────────────────────────────────────────────────
+  domain: ""                    # Your domain (e.g., "example.com")
+  tenant: ""                    # Tenant name (e.g., "factory-floor-01")
+  version: "latest"             # Or "1.3.0"
+
+  # ── Registry Credentials ────────────────────────────────────────
+  # Provided by SORBA team
+  credentials:
+    enabled: true
+    registry: sorbaregistry.azurecr.io
+    username: ""                # SORBA-provided username
+    password: ""                # SORBA-provided token/password
+
+  config:
+    environment: ""
+
+  # ── SSL Certificate (ACME DNS-01) ───────────────────────────────
+  # BEFORE deploying, create this DNS record:
+  #   _acme-challenge.{tenant}.{domain} CNAME daed2c11-cadc-43cc-8564-53174c6ab6f6.auth.acme-dns.io
+  acmedns:
+    enabled: true
+
+  # ── Service Secrets ─────────────────────────────────────────────
+  # Generate secure passwords for each service
+  secrets:
+    mysql:
+      MYSQL_PASSWORD: ""        # MySQL root password
+    influx:
+      INFLUX_PASSWORD: ""       # InfluxDB admin password
+    grafana:
+      GRAFANA_PASSWORD: ""      # Grafana sorba_admin password
+    mqtt:
+      MQTT_PASSWORD: ""         # MQTT broker admin password
+
+# ── Component Resource Overrides ──────────────────────────────────
+# Adjust based on your cluster capacity
+
+influxdb:
+  resources:
+    limits:
+      cpu: 1500m
+      memory: 1024Mi
+    requests:
+      cpu: 1000m
+      memory: 1024Mi
+
+mysql-sorba:
+  primary:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2048Mi
+      requests:
+        cpu: 500m
+        memory: 1024Mi
+
+redis:
+  master:
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 2048Mi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+# ═══════════════════════════════════════════════════════════════════════
+# POST-DEPLOYMENT
+# ═══════════════════════════════════════════════════════════════════════
+# 1. Get the external IP:
+#    kubectl -n <tenant> get svc -l app.kubernetes.io/component=controller
+#
+# 2. Create wildcard DNS record:
+#    *.{tenant}.{domain} A <EXTERNAL_IP>
+#
+# 3. Wait for cert-manager to issue certificates
+#
+# 4. Access the platform:
+#    https://platform.{tenant}.{domain}
+#    Default login: sorba_admin / <GRAFANA_PASSWORD>
+#
+# 5. Deploy EmberNET bridge (in same namespace):
+#    helm install sorba-cloud-bridge charts/sorba-cloud -n <tenant> \
+#      --set sorba.domain=<domain> --set sorba.tenant=<tenant>
+# ═══════════════════════════════════════════════════════════════════════
