@@ -1,13 +1,12 @@
 # ═══════════════════════════════════════════════════════════════════════
-# SORBA Cloud — EmberNET App Store Service Template
+# SORBA Cloud — EmberNET Bridge Service
 # ═══════════════════════════════════════════════════════════════════════
-# This MUST be ClusterIP. The dashboard proxy targets this service's
-# FQDN to build the iframe URL: <svc>.<ns>.svc.cluster.local:<port>
+# This service is what the EmberNET dashboard proxy targets for iframe
+# embedding. It routes to the bridge pod, which forwards to the
+# upstream SORBA Cloud platform.
 #
-# CRITICAL (Phase 2): The Service MUST carry embernet.ai/store-app
-# and the other store labels. The dashboard's /api/apps/services
-# endpoint queries Services (not just Pods) by this label to build
-# the live "Running Apps" panel. No label = invisible to Running Apps.
+# CRITICAL: The Service MUST carry embernet.ai/store-app and the
+# other store labels for the Running Apps panel.
 # ═══════════════════════════════════════════════════════════════════════
 apiVersion: v1
 kind: Service
@@ -16,9 +15,8 @@ metadata:
   labels:
     {{- include "sorba-cloud.labels" . | nindent 4 }}
     # ═══════════════════════════════════════════════════════════════
-    # EmberNET Store Labels on the SERVICE (required for /api/apps/services)
-    # The dashboard queries Services by these labels to build the
-    # live Running Apps catalog. Same labels as on the pod template.
+    # EmberNET Store Labels on the SERVICE
+    # Required for /api/apps/services (Running Apps panel)
     # ═══════════════════════════════════════════════════════════════
     {{- include "sorba-cloud.storeLabels" . | nindent 4 }}
   {{- if .Values.gui.displayName }}
@@ -29,8 +27,8 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: https
+      targetPort: 8080
       protocol: TCP
-      name: https
+      name: http
   selector:
     {{- include "sorba-cloud.selectorLabels" . | nindent 4 }}

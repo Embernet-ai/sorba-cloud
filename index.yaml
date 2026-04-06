@@ -11,10 +11,10 @@ entries:
       catalog.cattle.io/supported-architectures: amd64,arm64
     apiVersion: v2
     appVersion: 1.3.0
-    created: "2026-04-06T14:09:34.280891-04:00"
-    description: SORBA Cloud IoT Platform — Unified industrial IoT platform with AI/ML,
-      MQTT, Grafana, and workflow automation for edge analytics and data collection
-    digest: 2f300cbbb2334c07f923215af9e0596034dc13dcf6d063d673f618d2db2f4975
+    created: "2026-04-06T14:21:17.750206-04:00"
+    description: EmberNET App Store bridge for SORBA Cloud IoT Platform — provides
+      dashboard visibility for the upstream SORBA Cloud deployment
+    digest: 037556c872bdf44e5ba2e41a893830e5f13366e697d918e48ef545bfe00acd6d
     home: https://github.com/embernet-ai/sorba-cloud
     icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
     keywords:
@@ -42,4 +42,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.3.0.tgz
     version: 1.3.0
-generated: "2026-04-06T14:09:34.280024-04:00"
+generated: "2026-04-06T14:21:17.74965-04:00"

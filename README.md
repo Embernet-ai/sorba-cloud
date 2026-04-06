@@ -1,26 +1,43 @@
-# 🔥 SORBA Cloud — EmberNET App Store Helm Chart
+# 🔥 SORBA Cloud — EmberNET App Store Wrapper Chart
 
-> **Built for:** The EmberNET App Store ecosystem  
-> **Source from:** SORBA Cloud (sorbaregistry.azurecr.io) private AKS deployment guide  
-> **Adapted by:** Patrick Ryan — CTO @ Fireball Industries  
-> **Purpose:** Helm chart for deploying the full SORBA Cloud IoT platform through the EmberNET Dashboard
+> **What this is:** An EmberNET wrapper chart for the SORBA Cloud IoT platform  
+> **What it wraps:** `oci://sorbaregistry.azurecr.io/helm/sorba-cloud` (SORBA's upstream chart)  
+> **What it is NOT:** The SORBA SDE — that's in `sorbotics-pod` (a separate product)
 
 ---
 
-## 💀 What Is This
+## 💀 What's Going On Here
 
-This repository packages the **SORBA Cloud IoT Unified Platform** as an EmberNET App Store Helm chart. It wraps the upstream SORBA Cloud OCI chart (`oci://sorbaregistry.azurecr.io/helm/sorba-cloud`) and adds all the EmberNET integration points — store labels, proxy compatibility, credential management, and CI/CD for GitHub Pages publishing.
+There are **two SORBA products** in the EmberNET ecosystem:
 
-SORBA Cloud provides a complete industrial IoT platform with:
-- **IoT Unified Platform** — primary web UI for device management
-- **Grafana Dashboard** — metrics visualization
-- **AI Trainer** — edge ML model training
-- **Workflow Engine** — NodeRed-based automation
-- **MQTT Broker** — industrial device messaging (TLS on port 8883)
-- **Identity Management** — authentication and authorization
-- **API Gateway** — centralized API routing
-- **InfluxDB** — time-series storage
-- **VPN** — secure remote access
+| Product | Repo | What It Is |
+|---------|------|------------|
+| **SORBA SDE** (Smart Data Engine) | `sorbotics-pod` | Edge data collection gateway — single pod, deploys per-node |
+| **SORBA Cloud** (IoT Platform) | `sorba-cloud` (this repo) | Full cloud platform — MySQL, InfluxDB, Redis, Grafana, MQTT, VPN, AI, NodeRed |
+
+This chart is for **SORBA Cloud** — the full platform. It's based on the SORBA helm chart deployment guide for private AKS clusters.
+
+## 🏗️ How It Works
+
+This is a **wrapper chart**. It does NOT contain the actual SORBA Cloud application. Instead:
+
+1. **Chart.yaml** declares the upstream SORBA chart as a dependency:
+   ```yaml
+   dependencies:
+     - name: sorba-cloud
+       version: "1.3.0"
+       repository: "oci://sorbaregistry.azurecr.io/helm"
+       alias: upstream
+   ```
+
+2. **values.yaml** passes configuration through to the upstream chart via the `upstream:` key
+
+3. **The wrapper adds:**
+   - A lightweight nginx bridge pod with EmberNET Big Four store labels
+   - A ClusterIP service for the dashboard iframe proxy
+   - A ConfigMap for the bridge's nginx reverse proxy config
+
+The upstream chart handles everything else: MySQL, InfluxDB, Redis, Grafana, MQTT broker, NodeRed, AI Trainer, VPN, Identity, API Gateway, ingress-nginx, cert-manager integration.
 
 ## 📦 Repository Structure
 
@@ -28,111 +45,109 @@ SORBA Cloud provides a complete industrial IoT platform with:
 sorba-cloud/
 ├── charts/
 │   └── sorba-cloud/
-│       ├── Chart.yaml              ← Chart metadata with SORBA + EmberNET annotations
-│       ├── values.yaml             ← Default values with SORBA global config + EmberNET store integration
+│       ├── Chart.yaml              ← Wrapper chart with upstream OCI dependency
+│       ├── values.yaml             ← EmberNET config + upstream passthrough values
 │       └── templates/
-│           ├── _helpers.tpl        ← Standard helpers + SORBA registry secret helper
-│           ├── deployment.yaml     ← Deployment with EmberNET Big Four labels
-│           ├── service.yaml        ← ClusterIP service with store labels
-│           ├── ingress.yaml        ← Optional ingress for direct access
-│           ├── pvc.yaml            ← Persistent storage for platform data
-│           ├── secrets.yaml        ← Registry + service credential secrets
-│           └── NOTES.txt           ← Post-install info with SORBA URLs
+│           ├── _helpers.tpl        ← Standard helpers + store labels
+│           ├── deployment.yaml     ← Bridge pod (EmberNET labels only)
+│           ├── service.yaml        ← ClusterIP service (dashboard proxy target)
+│           ├── configmap.yaml      ← Nginx proxy config for bridge
+│           ├── secrets.yaml        ← Registry credentials (bridge pod only)
+│           └── NOTES.txt           ← Post-install output with SORBA URLs
 ├── .github/
 │   └── workflows/
 │       └── helm-publish.yml        ← GH Pages Helm repo publish
 └── README.md                       ← You are here
 ```
 
-## 🚀 Quick Start
+## 🚀 Deployment
 
 ### Prerequisites
 
-1. SORBA Cloud registry credentials (username + token) from SORBA team
-2. cert-manager installed in the cluster (for SSL certificates)
-3. DNS access for ACME challenge and wildcard records
+1. **SORBA registry credentials** (username + token) from the SORBA team
+2. **cert-manager** installed on the cluster
+3. **DNS access** for ACME challenge and wildcard records
+4. **Helm registry login:**
+   ```bash
+   helm registry login sorbaregistry.azurecr.io -u <USERNAME> -p <TOKEN>
+   ```
 
 ### 1. Create the Registry Secret
 
 ```bash
 kubectl create secret docker-registry sorba-registry-secret \
   --docker-server=sorbaregistry.azurecr.io \
-  --docker-username=<SORBA_USERNAME> \
-  --docker-password=<SORBA_TOKEN> \
+  --docker-username=<USERNAME> \
+  --docker-password=<TOKEN> \
   -n <namespace>
 ```
 
-### 2. Create Service Secrets
+### 2. Set Up DNS
 
 ```bash
-kubectl create secret generic sorba-mysql-credentials \
-  --from-literal=MYSQL_PASSWORD='<secure-password>' \
-  -n <namespace>
+# ACME challenge for SSL certificates
+_acme-challenge.{tenant}.{domain} CNAME daed2c11-cadc-43cc-8564-53174c6ab6f6.auth.acme-dns.io
 
-kubectl create secret generic sorba-influx-credentials \
-  --from-literal=INFLUX_PASSWORD='<secure-password>' \
-  -n <namespace>
-
-kubectl create secret generic sorba-grafana-credentials \
-  --from-literal=GRAFANA_PASSWORD='<secure-password>' \
-  -n <namespace>
-
-kubectl create secret generic sorba-mqtt-credentials \
-  --from-literal=MQTT_PASSWORD='<secure-password>' \
-  -n <namespace>
+# After deployment — wildcard A record pointing to ingress external IP
+*.{tenant}.{domain} A <EXTERNAL_IP>
 ```
 
-### 3. Configure values.yaml
+### 3. Configure and Deploy
 
 ```yaml
-global:
-  domain: "yourdomain.com"
-  tenant: "your-tenant"
-  version: "1.3.0"
-  credentials:
-    existingSecret: "sorba-registry-secret"
+# values.yaml
+upstream:
+  global:
+    domain: "yourdomain.com"
+    tenant: "your-tenant"
+    version: "1.3.0"
+    credentials:
+      enabled: true
+      registry: sorbaregistry.azurecr.io
+      username: <USERNAME>
+      password: <TOKEN>
+    secrets:
+      mysql:
+        MYSQL_PASSWORD: "<secure>"
+      influx:
+        INFLUX_PASSWORD: "<secure>"
+      grafana:
+        GRAFANA_PASSWORD: "<secure>"
+      mqtt:
+        MQTT_PASSWORD: "<secure>"
 ```
 
-### 4. Deploy via EmberNET Dashboard
+```bash
+helm dependency update charts/sorba-cloud
+helm install sorba-cloud charts/sorba-cloud -n <namespace> --create-namespace -f values.yaml
+```
 
-Once the chart is published and registered in `store.go`, deploy from the App Store UI — click Deploy, select a node, done.
-
-### 5. Manual Deploy (if needed)
+### 4. Get External IP and Set Wildcard DNS
 
 ```bash
-helm install sorba-cloud ./charts/sorba-cloud \
-  -n <namespace> --create-namespace \
-  -f values.yaml
+kubectl -n <namespace> get svc -l app.kubernetes.io/component=controller
+# Copy EXTERNAL-IP → create wildcard DNS record
 ```
 
 ## 🏷️ EmberNET Store Labels
 
-All four labels are present on both the Pod template and the Service:
+The bridge pod and service carry all four required labels:
 
-| Label | Value | Purpose |
-|-------|-------|---------|
-| `embernet.ai/store-app` | `"true"` | Dashboard discovers the pod |
-| `embernet.ai/gui-type` | `"web"` | Enables "Open" iframe button |
-| `embernet.ai/app-name` | `"sorba-cloud"` | Display name in node detail |
-| `embernet.ai/gui-port` | `"443"` | Port for proxy iframe target |
+| Label | Value |
+|-------|-------|
+| `embernet.ai/store-app` | `"true"` |
+| `embernet.ai/gui-type` | `"web"` |
+| `embernet.ai/app-name` | `"sorba-cloud"` |
+| `embernet.ai/gui-port` | `"443"` |
 
 ## 🔗 Dashboard Registration
 
-Add to `HelmRepoURLs` in `store.go`:
-
+In `store.go`:
 ```go
 "https://embernet-ai.github.io/sorba-cloud/index.yaml",
 ```
 
-Or set via environment variable (no rebuild required):
-
-```bash
-EMBERNET_HELM_REPOS="...,https://embernet-ai.github.io/sorba-cloud/index.yaml"
-```
-
-## 🌐 SORBA Cloud Application URLs
-
-Once deployed with domain and tenant configured:
+## 🌐 SORBA Cloud Services
 
 | Application | URL |
 |------------|-----|
@@ -147,17 +162,6 @@ Once deployed with domain and tenant configured:
 | InfluxDB API | `https://influx.{tenant}.{domain}` |
 | MQTT Broker | `tcp://broker.{tenant}.{domain}:8883` |
 
-## 📋 Relationship to sorbotics-pod
-
-This chart (`sorba-cloud`) is the **full SORBA Cloud platform** — the complete IoT stack.  
-The existing `sorbotics-pod` (`sorba-sde`) is the **SORBA Smart Data Engine** — the edge data collection and analytics component.
-
-They are complementary:
-- `sorba-cloud` = the cloud/central platform (9+ services, heavy resources)
-- `sorba-sde` = the edge gateway/collector (single pod, lighter footprint)
-
-Both are registered in `store.go` and deployable from the EmberNET App Store.
-
 ---
 
-*Built with Go, Helm, YAML, and a White Monster. — Patrick Ryan, CTO*
+*Built with Go, Helm, and proper architecture. — Patrick Ryan, CTO*
