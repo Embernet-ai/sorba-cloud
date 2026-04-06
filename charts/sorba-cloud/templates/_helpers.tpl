@@ -86,13 +86,3 @@ Create the name of the service account to use.
 {{- "default" }}
 {{- end }}
 {{- end }}
-
-{{/*
-SORBA registry image pull secret — generates a docker-registry secret
-from inline credentials when global.credentials.existingSecret is empty.
-*/}}
-{{- define "sorba-cloud.registrySecret" -}}
-{{- if and .Values.global.credentials.enabled (not .Values.global.credentials.existingSecret) }}
-{{- printf "{\"auths\":{\"%s\":{\"username\":\"%s\",\"password\":\"%s\",\"auth\":\"%s\"}}}" .Values.global.credentials.registry .Values.global.credentials.username .Values.global.credentials.password (printf "%s:%s" .Values.global.credentials.username .Values.global.credentials.password | b64enc) | b64enc }}
-{{- end }}
-{{- end }}

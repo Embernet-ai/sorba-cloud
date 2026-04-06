@@ -1,21 +1,28 @@
 # ═══════════════════════════════════════════════════════════════════════
-# SORBA Cloud — EmberNET App Store Deployment Template
+# SORBA Cloud — EmberNET Label Bridge Deployment
 # ═══════════════════════════════════════════════════════════════════════
-# This creates the Deployment for the SORBA Cloud platform. The pod
-# template MUST include the EmberNET store labels for dashboard discovery.
+# This is NOT the main SORBA Cloud deployment — that's handled by the
+# upstream subchart dependency (oci://sorbaregistry.azurecr.io/helm/sorba-cloud).
 #
-# SORBA Cloud is a multi-service platform. This deployment wraps the
-# primary platform entry point. The upstream SORBA chart manages its
-# own sub-deployments (MySQL, InfluxDB, Redis, Grafana, MQTT, etc.).
+# This deployment exists ONLY to provide EmberNET App Store labels so
+# the dashboard can discover the SORBA Cloud deployment and enable the
+# "Open" iframe button. It runs a minimal busybox sidecar that:
+#   1. Carries the Big Four embernet.ai/* labels
+#   2. Provides a health endpoint for the dashboard proxy
+#   3. Redirects to the actual SORBA platform service
+#
+# The upstream SORBA chart deploys MySQL, InfluxDB, Redis, Grafana,
+# MQTT, NodeRed, AI Trainer, Identity, VPN, API Gateway, etc.
+# This pod just makes all of that visible to EmberNET.
 # ═══════════════════════════════════════════════════════════════════════
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "sorba-cloud.fullname" . }}
+  name: {{ include "sorba-cloud.fullname" . }}-bridge
   labels:
     {{- include "sorba-cloud.labels" . | nindent 4 }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       {{- include "sorba-cloud.selectorLabels" . | nindent 6 }}
@@ -25,9 +32,8 @@ spec:
         {{- include "sorba-cloud.selectorLabels" . | nindent 8 }}
         # ═══════════════════════════════════════════════════════════
         # CRITICAL: EmberNET Store Labels — THE BIG FOUR
-        # These labels are how the dashboard discovers deployed apps
-        # on each node and enables the "Open" iframe button.
-        # Miss one and your app is invisible. This is not a drill.
+        # These labels are how the dashboard discovers the SORBA
+        # Cloud deployment and enables the "Open" iframe button.
         # ═══════════════════════════════════════════════════════════
         {{- include "sorba-cloud.storeLabels" . | nindent 8 }}
       {{- if .Values.gui.displayName }}
@@ -35,21 +41,6 @@ spec:
         embernet.ai/display-name: {{ .Values.gui.displayName | quote }}
       {{- end }}
     spec:
-      {{- if .Values.serviceAccount }}
-      {{- if .Values.serviceAccount.name }}
-      serviceAccountName: {{ .Values.serviceAccount.name }}
-      {{- end }}
-      {{- end }}
-      # ─── Host Network Mode ──────────────────────────────────────
-      # SORBA Cloud needs host network for MQTT (8883) and VPN (1194)
-      # traffic to reach industrial devices on the plant floor.
-      # ───────────────────────────────────────────────────────────
-      {{- if .Values.network.hostNetwork }}
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      {{- else }}
-      dnsPolicy: ClusterFirst
-      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -67,98 +58,39 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        # Lightweight nginx reverse proxy that forwards traffic to the
+        # upstream SORBA platform service. This is what the EmberNET
+        # dashboard iframe connects to.
+        - name: bridge
+          image: "nginx:alpine"
+          imagePullPolicy: IfNotPresent
           ports:
             - name: https
-              containerPort: {{ .Values.service.port }}
+              containerPort: 8080
               protocol: TCP
-              {{- if .Values.network.hostNetwork }}
-              hostPort: {{ .Values.service.port }}
-              {{- end }}
-            {{- range .Values.network.extraPorts }}
-            - name: {{ .name }}
-              containerPort: {{ .containerPort }}
-              protocol: {{ .protocol | default "TCP" }}
-              {{- if $.Values.network.hostNetwork }}
-              hostPort: {{ .containerPort }}
-              {{- end }}
-            {{- end }}
-          # ─── Security Context ──────────────────────────────────
-          # SORBA Cloud requires root for privileged port binding
-          # and VPN tunnel management (NET_ADMIN).
-          # ──────────────────────────────────────────────────────
-          securityContext:
-            runAsNonRoot: {{ not .Values.securityContext.runAsRoot }}
-            {{- if .Values.securityContext.runAsRoot }}
-            runAsUser: 0
-            {{- else }}
-            runAsUser: {{ .Values.securityContext.runAsUser | default 65534 }}
-            {{- end }}
-            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation | default false }}
-            {{- if .Values.securityContext.capabilities }}
-            capabilities:
-              {{- if .Values.securityContext.capabilities.add }}
-              add:
-                {{- toYaml .Values.securityContext.capabilities.add | nindent 16 }}
-              {{- end }}
-              {{- if .Values.securityContext.capabilities.drop }}
-              drop:
-                {{- toYaml .Values.securityContext.capabilities.drop | nindent 16 }}
-              {{- end }}
-            {{- else }}
-            capabilities:
-              drop: ["ALL"]
-            {{- end }}
-          # ─── Environment Variables ──────────────────────────────
-          # SORBA global config injected as env vars.
-          env:
-            - name: SORBA_DOMAIN
-              value: {{ .Values.global.domain | quote }}
-            - name: SORBA_TENANT
-              value: {{ .Values.global.tenant | quote }}
-            - name: SORBA_VERSION
-              value: {{ .Values.global.version | quote }}
-            {{- with .Values.env }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          {{- if .Values.envFrom }}
-          envFrom:
-            {{- toYaml .Values.envFrom | nindent 12 }}
-          {{- end }}
-          # ─── Probes ─────────────────────────────────────────────
-          # Platform health check on HTTPS endpoint.
           livenessProbe:
             httpGet:
-              path: /
-              port: https
-              scheme: HTTPS
-            initialDelaySeconds: 60
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
             periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 5
           readinessProbe:
             httpGet:
-              path: /
-              port: https
-              scheme: HTTPS
-            initialDelaySeconds: 30
-            periodSeconds: 15
-            timeoutSeconds: 5
-            failureThreshold: 3
-          {{- with .Values.resources }}
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
           resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- if .Values.persistence.enabled }}
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
           volumeMounts:
-            - name: data
-              mountPath: /data
-          {{- end }}
-      {{- if .Values.persistence.enabled }}
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "sorba-cloud.fullname" . }}-data
-      {{- end }}
+        - name: nginx-config
+          configMap:
+            name: {{ include "sorba-cloud.fullname" . }}-bridge-config
