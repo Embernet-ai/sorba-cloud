@@ -1,0 +1,71 @@
+═══════════════════════════════════════════════════════════════════════
+🔥 {{ include "sorba-cloud.name" . }} has been deployed to the EmberNET App Store.
+═══════════════════════════════════════════════════════════════════════
+
+Chart Version: {{ .Chart.Version }}
+App Version:   {{ .Chart.AppVersion }}
+Release:       {{ .Release.Name }}
+Namespace:     {{ .Release.Namespace }}
+
+── Service Info ────────────────────────────────────────────────────────
+Service Name:  {{ include "sorba-cloud.fullname" . }}
+Service Port:  {{ .Values.service.port }}
+Service Type:  {{ .Values.service.type }}
+Service FQDN:  {{ include "sorba-cloud.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+
+── Dashboard Integration ───────────────────────────────────────────────
+GUI Enabled:   {{ .Values.gui.enabled }}
+GUI Type:      {{ .Values.gui.type }}
+GUI Port:      {{ .Values.gui.port }}
+Display Name:  {{ .Values.gui.displayName | default "(auto: from app-name label)" }}
+
+── SORBA Cloud Configuration ──────────────────────────────────────────
+Domain:        {{ .Values.global.domain | default "(not set — configure in values.yaml)" }}
+Tenant:        {{ .Values.global.tenant | default "(not set — configure in values.yaml)" }}
+Version:       {{ .Values.global.version }}
+Registry:      {{ .Values.global.credentials.registry }}
+
+── SORBA Application URLs ─────────────────────────────────────────────
+{{- if and .Values.global.domain .Values.global.tenant }}
+IoT Platform:  https://platform.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+Dashboard:     https://dashboard.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+AI Trainer:    https://ml-ui.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+Identity:      https://identity.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+Task Flow:     https://taskflows.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+VPN:           https://vpn.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+Workflow:      https://workflow.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+API Gateway:   https://gateway.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+InfluxDB API:  https://influx.{{ .Values.global.tenant }}.{{ .Values.global.domain }}
+MQTT Broker:   tcp://broker.{{ .Values.global.tenant }}.{{ .Values.global.domain }}:8883
+VPN Tunnel:    tcp://vpn.{{ .Values.global.tenant }}.{{ .Values.global.domain }}:1194
+{{- else }}
+  ⚠ Domain and/or Tenant not configured — set global.domain and global.tenant in values.yaml.
+{{- end }}
+
+── Proxy URL (for iframe embedding) ────────────────────────────────────
+https://{{ include "sorba-cloud.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+
+── What Happens Next ───────────────────────────────────────────────────
+1. Pod labels:     embernet.ai/store-app=true → dashboard discovers the pod
+2. Service labels: embernet.ai/store-app=true → appears in Running Apps panel
+3. "Open" button:  builds proxy URL using the Service FQDN shown above
+4. Iframe overlay: dashboard proxy strips X-Frame-Options + CSP headers
+5. If the iframe is blank, check pod AND service labels — all four are required
+
+── DNS Setup Required ──────────────────────────────────────────────────
+{{- if and .Values.global.domain .Values.global.tenant }}
+1. ACME DNS:  _acme-challenge.{{ .Values.global.tenant }}.{{ .Values.global.domain }} CNAME → daed2c11-cadc-43cc-8564-53174c6ab6f6.auth.acme-dns.io
+2. Wildcard:  *.{{ .Values.global.tenant }}.{{ .Values.global.domain }} A → <EXTERNAL_IP>
+   Run: kubectl -n {{ .Release.Namespace }} get svc -l app.kubernetes.io/component=controller
+{{- else }}
+  ⚠ Configure global.domain and global.tenant first.
+{{- end }}
+
+── Verification ────────────────────────────────────────────────────────
+kubectl get svc {{ include "sorba-cloud.fullname" . }} -n {{ .Release.Namespace }} --show-labels
+kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }} --show-labels
+
+── Need Help? ──────────────────────────────────────────────────────────
+Read the spec: docs/appstore-helm-chart-spec.md
+Ping Patrick: patrick@fireballz.ai (he's probably awake)
+

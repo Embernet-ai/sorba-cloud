@@ -1,0 +1,47 @@
+apiVersion: v2
+name: sorba-cloud
+description: "SORBA Cloud IoT Platform — Unified industrial IoT platform with AI/ML, MQTT, Grafana, and workflow automation for edge analytics and data collection"
+type: application
+version: 1.3.0
+appVersion: "1.3.0"
+
+# ═══════════════════════════════════════════════════════════════════════
+# REQUIRED: Icon URL used by the dashboard store UI.
+# Must be a publicly accessible HTTPS URL.
+# Using the SORBA brand icon from their official registry.
+# ═══════════════════════════════════════════════════════════════════════
+icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
+
+# Rancher catalog annotations (displayed in Rancher UI if applicable)
+annotations:
+  catalog.cattle.io/display-name: "SORBA Cloud IoT Platform"
+  catalog.cattle.io/namespace: default
+  catalog.cattle.io/certified: partner
+  catalog.cattle.io/os: linux
+  catalog.cattle.io/supported-architectures: amd64,arm64
+  catalog.cattle.io/requests-cpu: "8000m"
+  catalog.cattle.io/requests-memory: "16Gi"
+
+keywords:
+  - embernet
+  - industrial
+  - iot
+  - sorba
+  - mqtt
+  - grafana
+  - influxdb
+  - machine-learning
+  - edge-analytics
+  - scada
+  - plc
+  - data-collection
+
+home: https://github.com/embernet-ai/sorba-cloud
+sources:
+  - https://github.com/embernet-ai/sorba-cloud
+
+maintainers:
+  - name: Patrick Ryan
+    email: patrick@fireballz.ai
+  - name: Embernet Team
+    email: helpdesk@fireballz.ai

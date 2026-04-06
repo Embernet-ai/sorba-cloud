@@ -1,0 +1,40 @@
+# ═══════════════════════════════════════════════════════════════════════
+# SORBA Cloud — GitHub Actions Helm Publish Workflow
+# ═══════════════════════════════════════════════════════════════════════
+# Packages the Helm chart and publishes to GitHub Pages so store.go
+# can discover it via index.yaml. Push to main. Watch it work.
+# ═══════════════════════════════════════════════════════════════════════
+
+name: Publish Helm Chart
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'charts/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Package chart
+        run: |
+          helm package charts/sorba-cloud -d .
+          helm repo index . --url https://embernet-ai.github.io/sorba-cloud/
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          keep_files: true
