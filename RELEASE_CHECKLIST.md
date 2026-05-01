@@ -12,7 +12,7 @@ Follow every step. In order. Don't freelance.
 
 One file. Two fields. This chart does NOT build its own Docker image — the bridge runs `nginx:alpine` from Docker Hub. Only bump `appVersion` when the upstream SORBA Cloud platform releases a new version.
 
-- [ ] `charts/sorba-cloud/Chart.yaml` — bump `version` (e.g., `1.3.0` → `1.4.0`)
+- [ ] `charts/sorba-cloud/Chart.yaml` — bump `version` (e.g., `1.4.0` → `1.4.1`)
 - [ ] `charts/sorba-cloud/Chart.yaml` — update `appVersion` if the upstream SORBA Cloud platform version changes
 
 ---
@@ -36,25 +36,47 @@ Zero errors on both or you're not shipping.
 
 ---
 
-## 3. EmberNET Store Labels (The Big Four)
+## 3. EmberNET Store Labels (The Big Five)
 
-Verify all four labels are present on **both** the pod template AND the service:
+All five labels MUST appear on **both** the pod template AND the service:
+
+| Label | Expected Value | Verified? |
+|-------|---------------|-----------|
+| `embernet.ai/store-app` | `"true"` | [ ] |
+| `embernet.ai/gui-type` | `"web"` | [ ] |
+| `embernet.ai/app-name` | `"sorba-cloud"` | [ ] |
+| `embernet.ai/gui-port` | `"443"` | [ ] |
+| `embernet.ai/chart-name` | `"sorba-cloud"` | [ ] |
 
 ```bash
-helm template test-release charts/sorba-cloud | grep -A4 "embernet.ai"
+helm template test-release charts/sorba-cloud | grep -c "embernet.ai"
+# Expected: 10 (5 labels × 2 resources: pod template + service)
 ```
 
-- [ ] `embernet.ai/store-app: "true"` present on **pod template labels** (deployment.yaml)
-- [ ] `embernet.ai/store-app: "true"` present on **Service labels** (service.yaml)
-- [ ] `embernet.ai/gui-type` renders correctly (should be `"web"`)
-- [ ] `embernet.ai/app-name` renders correctly (should be `"sorba-cloud"`)
-- [ ] `embernet.ai/gui-port` renders as a quoted number (should be `"443"`)
-- [ ] All 4 labels generated via `sorba-cloud.storeLabels` helper (not hardcoded)
-- [ ] `_helpers.tpl` contains `sorba-cloud.storeLabels` helper
+- [ ] All 5 labels present on **pod template labels** (deployment.yaml)
+- [ ] All 5 labels present on **Service labels** (service.yaml)
+- [ ] All 5 labels generated via `sorba-cloud.storeLabels` helper (not hardcoded)
+- [ ] `_helpers.tpl` contains `sorba-cloud.storeLabels` helper with all five labels
 
 ---
 
-## 4. Bridge Configuration Verification
+## 4. Service Configuration (FQDN Proxy Routing)
+
+The EmberNET dashboard proxy constructs the FQDN as `{release-name}.{namespace}.svc.cluster.local`. The Service name MUST equal the release name.
+
+```bash
+helm template test-release charts/sorba-cloud | grep "name: test-release"
+# Expected: Service name is exactly "test-release"
+```
+
+- [ ] Service name uses `{{ .Release.Name }}` — NOT `{{ include "sorba-cloud.fullname" . }}`
+- [ ] Service type is `ClusterIP` by default
+- [ ] Service port is `443` (maps to bridge port 8080)
+- [ ] `embernet.ai/display-name` annotation present on Service
+
+---
+
+## 5. Bridge Configuration Verification
 
 The bridge pod is a lightweight nginx reverse proxy to the upstream SORBA platform:
 
@@ -66,7 +88,7 @@ The bridge pod is a lightweight nginx reverse proxy to the upstream SORBA platfo
 
 ---
 
-## 5. Clean Old Chart Packages
+## 6. Clean Old Chart Packages
 
 ```powershell
 Remove-Item sorba-cloud-*.tgz
@@ -76,7 +98,7 @@ Old packages are dead weight. Clean them every release.
 
 ---
 
-## 6. Package Helm Chart
+## 7. Package Helm Chart
 
 From repo root:
 
@@ -94,7 +116,7 @@ dir *.tgz
 
 ---
 
-## 7. Regenerate index.yaml
+## 8. Regenerate index.yaml
 
 The `--url` flag is critical. Our `.tgz` files live at the **repo root**, NOT in a `/charts/` subfolder.
 
@@ -114,7 +136,7 @@ If the URL has `/charts/` in it, Rancher gets "gzip: Invalid header" forever.
 
 ---
 
-## 8. Verify GitHub Actions Workflow
+## 9. Verify GitHub Actions Workflow
 
 Check `.github/workflows/helm-publish.yml`:
 
@@ -126,7 +148,7 @@ Check `.github/workflows/helm-publish.yml`:
 
 ---
 
-## 9. Commit, Tag, Push, Release
+## 10. Commit, Tag, Push, Release
 
 ### Review changes:
 
@@ -167,7 +189,7 @@ The push to main triggers `.github/workflows/helm-publish.yml`, which:
 
 ---
 
-## 10. Verify GitHub Actions
+## 11. Verify GitHub Actions
 
 Check the Actions tab at `https://github.com/Embernet-ai/sorba-cloud/actions`:
 
@@ -185,7 +207,7 @@ git push origin v<VERSION>
 
 ---
 
-## 11. Verify Helm Repository
+## 12. Verify Helm Repository
 
 ```bash
 helm repo add sorba-cloud https://embernet-ai.github.io/sorba-cloud/ --force-update
@@ -207,7 +229,7 @@ Both must return `200 OK`.
 
 ---
 
-## 12. Verify Dashboard Integration
+## 13. Verify Dashboard Integration
 
 - [ ] Chart appears in EmberNET App Store catalog
 - [ ] No "gzip: Invalid header" error
@@ -223,7 +245,7 @@ Expected: `"https://embernet-ai.github.io/sorba-cloud/index.yaml",`
 
 ---
 
-## 13. Post-Deploy Verification (On Cluster)
+## 14. Post-Deploy Verification (On Cluster)
 
 ### Bridge Pod Verification
 
@@ -264,6 +286,8 @@ kubectl exec -it deploy/<RELEASE>-sorba-cloud-bridge -n <TENANT> -- \
 | "no such host" on platform proxy | DNS resolver in nginx config wrong | Verify `resolver kube-dns.kube-system.svc.cluster.local` in configmap |
 | Dashboard sees app but iframe blank | `gui-port` mismatch with service port | Verify: `values.yaml gui.port` = 443, service targets bridge port 8080 |
 | Registry auth failures | SORBA registry credentials expired | Contact SORBA team for new credentials, recreate `sorba-registry-secret` |
+| App has generic icon | Missing `embernet.ai/chart-name` label | Add label to `storeLabels` helper in `_helpers.tpl` |
+| Service FQDN routing broken | Service name ≠ release name | Service must use `{{ .Release.Name }}`, not fullname helper |
 
 ---
 

@@ -7,29 +7,57 @@
 #
 #   export TENANT=<your_tenant>
 #   helm -n $TENANT upgrade $TENANT \
-#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.3.0 \
+#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.5.0 \
 #     -i --create-namespace -f values-sorba.yaml
 #
 # After deploying the upstream chart, deploy the EmberNET bridge:
 #   helm install sorba-cloud-bridge charts/sorba-cloud -n $TENANT \
 #     --set sorba.domain=<domain> --set sorba.tenant=<tenant>
 #
-# Reference: SORBA Cloud Helm Chart Deployment Guide
+# ── Image Pull Secrets (Lucas, 2026-04-30) ─────────────────────────
+# Two cluster-wide pull secrets exist in `fireball-system` and are
+# replicated to every namespace by kubernetes-replicator:
+#   - acr-fireball-embernet  (registry: fireball-embernet.azurecr.io)
+#   - dockerhub-pull-secret  (registry: index.docker.io — bypass anon
+#                             rate limit of 100 pulls / 6h)
+#
+# The upstream SORBA chart pulls Sorba images from
+# fireball-embernet.azurecr.io, so wire `acr-fireball-embernet` via the
+# upstream chart's pull-secret values (see global.imagePullSecrets and
+# global.credentials sections below). For any deployment hitting Docker
+# Hub (e.g. the bridge nginx image), add `dockerhub-pull-secret`.
+#
+# ── Tenant Identifier ───────────────────────────────────────────────
+# Confirmed URL format with the Sorba team:
+#   platform.{tenant}.{domain}
+# Coordinate the tenant slug with the Sorba team before deploying.
 # ═══════════════════════════════════════════════════════════════════════
 
 global:
   # ── REQUIRED ────────────────────────────────────────────────────
   domain: ""                    # Your domain (e.g., "example.com")
-  tenant: ""                    # Tenant name (e.g., "factory-floor-01")
-  version: "latest"             # Or "1.3.0"
+  tenant: ""                    # Tenant slug — must be coordinated with the
+                                # Sorba team. Final URL is platform.{tenant}.{domain}.
+  version: "1.5.0"              # Sorba team confirmed current version is 1.5.0
+                                # (per Lucas handoff, 2026-04-30)
+
+  # ── Image Pull Secret (pre-created, cluster-wide) ───────────────
+  # `acr-fireball-embernet` is created in fireball-system and replicated
+  # to every namespace by kubernetes-replicator, so referencing it here
+  # works in any tenant namespace without per-namespace setup.
+  imagePullSecrets:
+    - name: acr-fireball-embernet
 
   # ── Registry Credentials ────────────────────────────────────────
-  # Provided by SORBA team
+  # Disabled: we rely on the pre-created `acr-fireball-embernet` secret
+  # above instead of letting the chart materialize a docker-config
+  # secret from username/password. Set enabled: true and fill creds
+  # ONLY if you need to fall back to chart-managed credentials.
   credentials:
-    enabled: true
-    registry: sorbaregistry.azurecr.io
-    username: ""                # SORBA-provided username
-    password: ""                # SORBA-provided token/password
+    enabled: false
+    registry: fireball-embernet.azurecr.io
+    username: ""
+    password: ""
 
   config:
     environment: ""
@@ -95,7 +123,7 @@ redis:
 #
 # 3. Wait for cert-manager to issue certificates
 #
-# 4. Access the platform:
+# 4. Access the platform (URL format confirmed by Sorba team):
 #    https://platform.{tenant}.{domain}
 #    Default login: sorba_admin / <GRAFANA_PASSWORD>
 #

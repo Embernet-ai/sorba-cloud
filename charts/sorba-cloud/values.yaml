@@ -6,15 +6,19 @@
 # separately via:
 #
 #   helm -n $TENANT upgrade $TENANT \
-#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.3.0 \
+#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.5.0 \
 #     -i --create-namespace -f values-sorba.yaml
 #
 # THIS chart adds a labeled pod + service for EmberNET dashboard
 # discovery and iframe proxy integration.
 # ═══════════════════════════════════════════════════════════════════════
 
+# The bridge container pulls `nginx:alpine` from Docker Hub. Authenticated
+# pulls bypass the 100/6h anonymous rate limit. `dockerhub-pull-secret` is
+# pre-created in fireball-system and replicated to every namespace by
+# kubernetes-replicator (Lucas handoff, 2026-04-30).
 imagePullSecrets:
-  - name: ghcr-secret
+  - name: dockerhub-pull-secret
 
 # ── Service Configuration (EmberNET proxy target) ────────────────────
 service:
@@ -69,13 +73,13 @@ config: {}
 #
 # global:
 #   domain: "<your_domain.com>"
-#   tenant: "<your_tenant>"
-#   version: "1.3.0"
+#   tenant: "<your_tenant>"          # platform.{tenant}.{domain} — coordinate with Sorba
+#   version: "1.5.0"
+#   imagePullSecrets:
+#     - name: acr-fireball-embernet  # cluster-wide, replicated by kubernetes-replicator
 #   credentials:
-#     enabled: true
-#     registry: sorbaregistry.azurecr.io
-#     username: <USERNAME>
-#     password: <TOKEN>
+#     enabled: false                 # using pre-created secret above instead
+#     registry: fireball-embernet.azurecr.io
 #   acmedns:
 #     enabled: true
 #   secrets:
@@ -92,6 +96,6 @@ config: {}
 #   helm registry login sorbaregistry.azurecr.io -u <USERNAME> -p <TOKEN>
 #   export TENANT=<your_tenant>
 #   helm -n $TENANT upgrade $TENANT \
-#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.3.0 \
+#     oci://sorbaregistry.azurecr.io/helm/sorba-cloud --version=1.5.0 \
 #     -i --create-namespace -f values-sorba.yaml
 # ═══════════════════════════════════════════════════════════════════════

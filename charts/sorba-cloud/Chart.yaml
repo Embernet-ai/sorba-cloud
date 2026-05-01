@@ -2,8 +2,8 @@ apiVersion: v2
 name: sorba-cloud
 description: "EmberNET App Store bridge for SORBA Cloud IoT Platform — provides dashboard visibility for the upstream SORBA Cloud deployment"
 type: application
-version: 1.4.0
-appVersion: "1.3.0"
+version: 1.5.0
+appVersion: "1.5.0"
 
 # ═══════════════════════════════════════════════════════════════════════
 # ARCHITECTURE NOTE
@@ -18,7 +18,11 @@ appVersion: "1.3.0"
 # Step 1: Deploy SORBA Cloud from their OCI registry (requires SORBA creds):
 #   helm registry login sorbaregistry.azurecr.io -u <USERNAME> -p <TOKEN>
 #   helm -n $TENANT upgrade $TENANT oci://sorbaregistry.azurecr.io/helm/sorba-cloud \
-#     --version=1.3.0 -i --create-namespace -f values-sorba.yaml
+#     --version=1.5.0 -i --create-namespace -f values-sorba.yaml
+#
+# Image pulls in the upstream chart use the cluster-wide `acr-fireball-embernet`
+# secret (created in fireball-system, replicated to all namespaces by
+# kubernetes-replicator). See values-sorba.yaml for wiring.
 #
 # Step 2: Deploy this bridge chart (adds EmberNET store labels):
 #   helm install sorba-cloud-bridge charts/sorba-cloud -n $TENANT
@@ -31,7 +35,7 @@ icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
 
 annotations:
   catalog.cattle.io/display-name: "SORBA Cloud IoT Platform"
-  catalog.cattle.io/namespace: default
+
   catalog.cattle.io/certified: partner
   catalog.cattle.io/os: linux
   catalog.cattle.io/supported-architectures: amd64,arm64
