@@ -14,6 +14,12 @@
 # The upstream SORBA chart deploys MySQL, InfluxDB, Redis, Grafana,
 # MQTT, NodeRed, AI Trainer, Identity, VPN, API Gateway, etc.
 # This pod just makes all of that visible to EmberNET.
+#
+# NOT a sidecar: this is a standalone pod that proxies to the upstream
+# SORBA platform Service via FQDN. The `sidecar-proxy` repo is a
+# different pattern — an in-pod nginx that rewrites SPA URLs for apps
+# served via query-param dashboard proxy. Sorba has its own ingress at
+# platform.{tenant}.{domain}, so URL rewriting is not needed here.
 # ═══════════════════════════════════════════════════════════════════════
 apiVersion: apps/v1
 kind: Deployment
@@ -31,7 +37,7 @@ spec:
       labels:
         {{- include "sorba-cloud.selectorLabels" . | nindent 8 }}
         # ═══════════════════════════════════════════════════════════
-        # CRITICAL: EmberNET Store Labels — THE BIG FOUR
+        # CRITICAL: EmberNET Store Labels — THE BIG FIVE
         # These labels are how the dashboard discovers the SORBA
         # Cloud deployment and enables the "Open" iframe button.
         # ═══════════════════════════════════════════════════════════

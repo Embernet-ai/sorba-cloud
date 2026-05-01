@@ -4,17 +4,16 @@ entries:
   - annotations:
       catalog.cattle.io/certified: partner
       catalog.cattle.io/display-name: SORBA Cloud IoT Platform
-      catalog.cattle.io/namespace: default
       catalog.cattle.io/os: linux
       catalog.cattle.io/requests-cpu: 8000m
       catalog.cattle.io/requests-memory: 16Gi
       catalog.cattle.io/supported-architectures: amd64,arm64
     apiVersion: v2
-    appVersion: 1.3.0
-    created: "2026-04-21T19:47:46.370245886Z"
+    appVersion: 1.5.0
+    created: "2026-05-01T15:32:25.016396529Z"
     description: EmberNET App Store bridge for SORBA Cloud IoT Platform — provides
       dashboard visibility for the upstream SORBA Cloud deployment
-    digest: 43d746f067691566b32ea3796d296cff3ce6448357589edbf638c1ddde403248
+    digest: 5d4aa15f425f32794762aea50ddcd4713c51134a539d9ee2b6260557106a129d
     home: https://github.com/embernet-ai/sorba-cloud
     icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
     keywords:
@@ -40,8 +39,8 @@ entries:
     - https://github.com/embernet-ai/sorba-cloud
     type: application
     urls:
-    - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.4.0.tgz
-    version: 1.4.0
+    - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.5.0.tgz
+    version: 1.5.0
   - annotations:
       catalog.cattle.io/certified: partner
       catalog.cattle.io/display-name: SORBA Cloud IoT Platform
@@ -52,7 +51,7 @@ entries:
       catalog.cattle.io/supported-architectures: amd64,arm64
     apiVersion: v2
     appVersion: 1.3.0
-    created: "2026-04-21T19:47:46.369777041Z"
+    created: "2026-05-01T15:32:25.015915852Z"
     description: EmberNET App Store bridge for SORBA Cloud IoT Platform — provides
       dashboard visibility for the upstream SORBA Cloud deployment
     digest: 037556c872bdf44e5ba2e41a893830e5f13366e697d918e48ef545bfe00acd6d
@@ -83,4 +82,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.3.0.tgz
     version: 1.3.0
-generated: "2026-04-21T19:47:46.369212698Z"
+generated: "2026-05-01T15:32:25.015024745Z"

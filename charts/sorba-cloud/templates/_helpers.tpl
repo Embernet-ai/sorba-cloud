@@ -21,16 +21,7 @@ We truncate at 63 chars because some K8s name fields are limited to this
 be used as a full name.
 */}}
 {{- define "sorba-cloud.fullname" -}}
-{{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
-{{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
-{{- end }}
-{{- end }}
 {{- end }}
 
 {{/*
@@ -53,23 +44,27 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Selector labels — pods and services must match on these.
+Selector labels
 */}}
 {{- define "sorba-cloud.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "sorba-cloud.name" . }}
+app.kubernetes.io/name: {{ .Release.Name }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-EmberNET Store discovery labels — THE BIG FOUR.
-These go on pod templates AND services. All four. Always.
+EmberNET Store discovery labels — THE BIG FIVE.
+These go on pod templates AND services. All five. Always.
 Miss one and your app is invisible to the dashboard.
+
+NOTE: embernet.ai/chart-name is required for icon resolution.
+The Dashboard maps this label to the correct icon from the chart registry.
 */}}
 {{- define "sorba-cloud.storeLabels" -}}
 embernet.ai/store-app: "true"
 embernet.ai/gui-type: {{ .Values.gui.type | default "web" | quote }}
-embernet.ai/app-name: {{ include "sorba-cloud.name" . | quote }}
+embernet.ai/app-name: "SORBA Cloud"
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
+embernet.ai/chart-name: {{ .Chart.Name | quote }}
 {{- end }}
 
 {{/*
