@@ -6,10 +6,10 @@
 #
 # This deployment exists ONLY to provide EmberNET App Store labels so
 # the dashboard can discover the SORBA Cloud deployment and enable the
-# "Open" iframe button. It runs a minimal busybox sidecar that:
-#   1. Carries the Big Four embernet.ai/* labels
+# "Open" iframe button. It runs an nginx reverse proxy that:
+#   1. Carries the embernet.ai/* discovery labels (see _helpers.tpl)
 #   2. Provides a health endpoint for the dashboard proxy
-#   3. Redirects to the actual SORBA platform service
+#   3. Forwards to the actual SORBA platform service
 #
 # The upstream SORBA chart deploys MySQL, InfluxDB, Redis, Grafana,
 # MQTT, NodeRed, AI Trainer, Identity, VPN, API Gateway, etc.
@@ -37,9 +37,9 @@ spec:
       labels:
         {{- include "sorba-cloud.selectorLabels" . | nindent 8 }}
         # ═══════════════════════════════════════════════════════════
-        # CRITICAL: EmberNET Store Labels — THE BIG FIVE
-        # These labels are how the dashboard discovers the SORBA
-        # Cloud deployment and enables the "Open" iframe button.
+        # EmberNET Store discovery labels (per APP_STORE_DEPLOYMENT_FLOW.md
+        # and AUDIT_HELM_CHARTS.md). These are how the dashboard discovers
+        # the SORBA Cloud deployment and enables the "Open" iframe button.
         # ═══════════════════════════════════════════════════════════
         {{- include "sorba-cloud.storeLabels" . | nindent 8 }}
       {{- if .Values.gui.displayName }}
