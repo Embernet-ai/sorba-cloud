@@ -36,27 +36,31 @@ Zero errors on both or you're not shipping.
 
 ---
 
-## 3. EmberNET Store Labels (The Big Five)
+## 3. EmberNET Store Labels & Annotations (per APP_STORE_DEPLOYMENT_FLOW.md and AUDIT_HELM_CHARTS.md)
 
-All five labels MUST appear on **both** the pod template AND the service:
+The discovery labels MUST appear on **both** the pod template AND the Service. The icon annotation lives on the Service only (read by `services.go`):
 
-| Label | Expected Value | Verified? |
-|-------|---------------|-----------|
-| `embernet.ai/store-app` | `"true"` | [ ] |
-| `embernet.ai/gui-type` | `"web"` | [ ] |
-| `embernet.ai/app-name` | `"sorba-cloud"` | [ ] |
-| `embernet.ai/gui-port` | `"443"` | [ ] |
-| `embernet.ai/chart-name` | `"sorba-cloud"` | [ ] |
+| Label / Annotation | Kind | Where | Expected Value | Verified? |
+|---|---|---|---|---|
+| `embernet.ai/store-app` | label | pod + svc | `"true"` | [ ] |
+| `embernet.ai/gui-type` | label | pod + svc | `"web"` | [ ] |
+| `embernet.ai/app-name` | label | pod + svc | `"SORBA Cloud"` | [ ] |
+| `embernet.ai/gui-port` | label | pod + svc | `"443"` | [ ] |
+| `app` | label | pod + svc | `"sorba-cloud"` (fallback for name/icon) | [ ] |
+| `app.kubernetes.io/instance` | label | pod + svc | `{{ .Release.Name }}` | [ ] |
+| `embernet.ai/app-icon` | annotation | svc | Chart icon URL | [ ] |
+| `embernet.ai/display-name` | annotation | pod + svc (if `gui.displayName`) | human-readable | [ ] |
 
 ```bash
-helm template test-release charts/sorba-cloud | grep -c "embernet.ai"
-# Expected: 10 (5 labels × 2 resources: pod template + service)
+helm template test-release charts/sorba-cloud | grep -c "embernet.ai/"
+# Expected: 10 (4 store labels × 2 resources) + 2 svc annotations (app-icon, display-name)
+#         = 12 occurrences of "embernet.ai/" when gui.displayName is set
 ```
 
-- [ ] All 5 labels present on **pod template labels** (deployment.yaml)
-- [ ] All 5 labels present on **Service labels** (service.yaml)
-- [ ] All 5 labels generated via `sorba-cloud.storeLabels` helper (not hardcoded)
-- [ ] `_helpers.tpl` contains `sorba-cloud.storeLabels` helper with all five labels
+- [ ] All 4 `embernet.ai/*` discovery labels render on **pod template** (deployment.yaml)
+- [ ] All 4 `embernet.ai/*` discovery labels render on **Service** (service.yaml)
+- [ ] All discovery labels generated via `sorba-cloud.storeLabels` helper (not hardcoded)
+- [ ] Service has `embernet.ai/app-icon` annotation pointing at `.Chart.Icon`
 
 ---
 
@@ -286,7 +290,7 @@ kubectl exec -it deploy/<RELEASE>-sorba-cloud-bridge -n <TENANT> -- \
 | "no such host" on platform proxy | DNS resolver in nginx config wrong | Verify `resolver kube-dns.kube-system.svc.cluster.local` in configmap |
 | Dashboard sees app but iframe blank | `gui-port` mismatch with service port | Verify: `values.yaml gui.port` = 443, service targets bridge port 8080 |
 | Registry auth failures | SORBA registry credentials expired | Contact SORBA team for new credentials, recreate `sorba-registry-secret` |
-| App has generic icon | Missing `embernet.ai/chart-name` label | Add label to `storeLabels` helper in `_helpers.tpl` |
+| App has generic icon | Missing `embernet.ai/app-icon` annotation on Service | Confirm `.Chart.Icon` is set and the annotation renders in service.yaml |
 | Service FQDN routing broken | Service name ≠ release name | Service must use `{{ .Release.Name }}`, not fullname helper |
 
 ---

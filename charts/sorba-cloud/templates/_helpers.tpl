@@ -52,19 +52,26 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-EmberNET Store discovery labels — THE BIG FIVE.
-These go on pod templates AND services. All five. Always.
-Miss one and your app is invisible to the dashboard.
+EmberNET Store discovery labels.
+These go on pod templates AND services so the dashboard's pod-discovery
+(GetNodesWithFilter) and service-discovery (GetRunningServices) both see them.
 
-NOTE: embernet.ai/chart-name is required for icon resolution.
-The Dashboard maps this label to the correct icon from the chart registry.
+Set per APP_STORE_DEPLOYMENT_FLOW.md and AUDIT_HELM_CHARTS.md:
+  - embernet.ai/store-app  (REQUIRED — discovery gate)
+  - embernet.ai/app-name   (display name)
+  - embernet.ai/gui-type   ("web" | "shell" | "none")
+  - embernet.ai/gui-port   (port number as string)
+  - app                    (fallback for name/icon resolution)
+
+Icon resolution flows through the embernet.ai/app-icon ANNOTATION on the
+Service (read by services.go), not a label. Set in service.yaml.
 */}}
 {{- define "sorba-cloud.storeLabels" -}}
 embernet.ai/store-app: "true"
 embernet.ai/gui-type: {{ .Values.gui.type | default "web" | quote }}
 embernet.ai/app-name: "SORBA Cloud"
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
-embernet.ai/chart-name: {{ .Chart.Name | quote }}
+app: {{ .Chart.Name }}
 {{- end }}
 
 {{/*

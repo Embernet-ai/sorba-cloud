@@ -19,10 +19,13 @@ metadata:
     # Required for /api/apps/services (Running Apps panel)
     # ═══════════════════════════════════════════════════════════════
     {{- include "sorba-cloud.storeLabels" . | nindent 4 }}
-  {{- if .Values.gui.displayName }}
   annotations:
+    {{- if .Values.gui.displayName }}
     embernet.ai/display-name: {{ .Values.gui.displayName | quote }}
-  {{- end }}
+    {{- end }}
+    {{- if .Chart.Icon }}
+    embernet.ai/app-icon: {{ .Chart.Icon | quote }}
+    {{- end }}
 spec:
   type: {{ .Values.service.type }}
   ports:
