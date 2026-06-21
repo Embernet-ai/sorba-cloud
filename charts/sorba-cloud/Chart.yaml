@@ -2,7 +2,7 @@ apiVersion: v2
 name: sorba-cloud
 description: "EmberNET App Store bridge for SORBA Cloud IoT Platform — provides dashboard visibility for the upstream SORBA Cloud deployment"
 type: application
-version: 1.5.0
+version: 1.5.1
 appVersion: "1.5.0"
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -31,7 +31,7 @@ appVersion: "1.5.0"
 # can discover and iframe. The upstream SORBA chart handles everything else.
 # ═══════════════════════════════════════════════════════════════════════
 
-icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
+icon: https://avatars.githubusercontent.com/u/276087459?v=4
 
 annotations:
   catalog.cattle.io/display-name: "SORBA Cloud IoT Platform"
