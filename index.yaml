@@ -10,12 +10,12 @@ entries:
       catalog.cattle.io/supported-architectures: amd64,arm64
     apiVersion: v2
     appVersion: 1.5.0
-    created: "2026-05-20T17:03:00.387687422Z"
+    created: "2026-06-21T02:03:16.873227651Z"
     description: EmberNET App Store bridge for SORBA Cloud IoT Platform — provides
       dashboard visibility for the upstream SORBA Cloud deployment
-    digest: b1dd01af3e1f26e6e76d2d3ada854e0b513093d2a759367220fcb3c4dc961ab4
+    digest: 7b4685bee8bf2b40ea04c578d8a99f0f981514a8a77c05a52e79791a3527fbe0
     home: https://github.com/embernet-ai/sorba-cloud
-    icon: https://raw.githubusercontent.com/embernet-ai/sorba-cloud/main/icon.png
+    icon: https://avatars.githubusercontent.com/u/276087459?v=4
     keywords:
     - embernet
     - industrial
@@ -39,8 +39,8 @@ entries:
     - https://github.com/embernet-ai/sorba-cloud
     type: application
     urls:
-    - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.5.0.tgz
-    version: 1.5.0
+    - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.5.1.tgz
+    version: 1.5.1
   - annotations:
       catalog.cattle.io/certified: partner
       catalog.cattle.io/display-name: SORBA Cloud IoT Platform
@@ -51,7 +51,7 @@ entries:
       catalog.cattle.io/supported-architectures: amd64,arm64
     apiVersion: v2
     appVersion: 1.3.0
-    created: "2026-05-20T17:03:00.38706153Z"
+    created: "2026-06-21T02:03:16.872744101Z"
     description: EmberNET App Store bridge for SORBA Cloud IoT Platform — provides
       dashboard visibility for the upstream SORBA Cloud deployment
     digest: 037556c872bdf44e5ba2e41a893830e5f13366e697d918e48ef545bfe00acd6d
@@ -82,4 +82,4 @@ entries:
     urls:
     - https://embernet-ai.github.io/sorba-cloud/sorba-cloud-1.3.0.tgz
     version: 1.3.0
-generated: "2026-05-20T17:03:00.38646377Z"
+generated: "2026-06-21T02:03:16.872174555Z"
