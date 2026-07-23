@@ -29,6 +29,15 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# ── EmberNET dashboard-injected values ───────────────────────────────
+# The dashboard injects `embernet.displayName` (the release name) and
+# `tenantLabels` (embernet.ai/tenant, deployed-by, deployment-id) at deploy
+# time. Both default empty for a bare `helm install`; the chart renders them
+# onto the pod template and Service. Do NOT remove — tenantLabels is the single
+# most common silent App Store failure when absent.
+embernet: {}
+tenantLabels: {}
+
 # ── GUI Configuration (EmberNET Store Labels) ────────────────────────
 gui:
   enabled: true
@@ -49,22 +58,17 @@ sorba:
   platformService: "platform"
   platformPort: 443
 
-# ── Network ───────────────────────────────────────────────────────────
-network:
-  hostNetwork: false
-  extraPorts: []
-
 # ── Security Context ──────────────────────────────────────────────────
+# Applied to the bridge container in deployment.yaml. Runs the nginx proxy as
+# the unprivileged `nobody` uid with no privilege escalation and no added
+# capabilities.
 securityContext:
-  runAsRoot: false
+  runAsNonRoot: true
   runAsUser: 65534
   allowPrivilegeEscalation: false
-  capabilities: {}
-
-serviceAccount: {}
-env: []
-envFrom: []
-config: {}
+  capabilities:
+    drop:
+      - ALL
 
 # ═══════════════════════════════════════════════════════════════════════
 # REFERENCE: Upstream SORBA Cloud values.yaml

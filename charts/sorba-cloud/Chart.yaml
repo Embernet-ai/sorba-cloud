@@ -2,7 +2,7 @@ apiVersion: v2
 name: sorba-cloud
 description: "EmberNET App Store bridge for SORBA Cloud IoT Platform — provides dashboard visibility for the upstream SORBA Cloud deployment"
 type: application
-version: 1.5.1
+version: 1.5.2
 appVersion: "1.5.0"
 
 # ═══════════════════════════════════════════════════════════════════════

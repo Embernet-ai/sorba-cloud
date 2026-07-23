@@ -1,8 +1,10 @@
 # ═══════════════════════════════════════════════════════════════════════
 # SORBA Cloud — EmberNET Label Bridge Deployment
 # ═══════════════════════════════════════════════════════════════════════
-# This is NOT the main SORBA Cloud deployment — that's handled by the
-# upstream subchart dependency (oci://sorbaregistry.azurecr.io/helm/sorba-cloud).
+# This is NOT the main SORBA Cloud deployment. The upstream SORBA Cloud
+# platform is deployed separately from its OCI registry
+# (oci://sorbaregistry.azurecr.io/helm/sorba-cloud) — it is NOT a subchart
+# dependency of this chart (Chart.yaml declares no dependencies).
 #
 # This deployment exists ONLY to provide EmberNET App Store labels so
 # the dashboard can discover the SORBA Cloud deployment and enable the
@@ -42,10 +44,13 @@ spec:
         # the SORBA Cloud deployment and enables the "Open" iframe button.
         # ═══════════════════════════════════════════════════════════
         {{- include "sorba-cloud.storeLabels" . | nindent 8 }}
-      {{- if .Values.gui.displayName }}
+        # Tenant identity injected by the dashboard (store.go tenantLabels).
+        # Without it the pod shell 403s and tenant views can't resolve it. Spec §2.
+        {{- include "sorba-cloud.tenantLabels" . | nindent 8 }}
       annotations:
-        embernet.ai/display-name: {{ .Values.gui.displayName | quote }}
-      {{- end }}
+        # Prefer the dashboard-injected display name (.Values.embernet.displayName),
+        # fall back to the chart-author override, then a sane default. Spec §2.
+        embernet.ai/display-name: {{ .Values.embernet.displayName | default .Values.gui.displayName | default "SORBA Cloud" | quote }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -70,6 +75,8 @@ spec:
         - name: bridge
           image: "nginx:alpine"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
           ports:
             - name: https
               containerPort: 8080

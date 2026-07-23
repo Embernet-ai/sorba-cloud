@@ -19,10 +19,15 @@ metadata:
     # Required for /api/apps/services (Running Apps panel)
     # ═══════════════════════════════════════════════════════════════
     {{- include "sorba-cloud.storeLabels" . | nindent 4 }}
+    # Tenant identity injected by the dashboard (store.go tenantLabels). Without it
+    # the Service is filtered out of every tenant view (services.go:226). Spec §2/§7.
+    {{- include "sorba-cloud.tenantLabels" . | nindent 4 }}
   annotations:
-    {{- if .Values.gui.displayName }}
-    embernet.ai/display-name: {{ .Values.gui.displayName | quote }}
-    {{- end }}
+    # Prefer the dashboard-injected display name, then chart override, then default.
+    embernet.ai/display-name: {{ .Values.embernet.displayName | default .Values.gui.displayName | default "SORBA Cloud" | quote }}
+    # Flux/Ziti mesh exposure so a remote-site (Fragua/Trane edge) dashboard can dial
+    # the GUI and the reconciler derives tenant from the node label. Spec §7.
+    flux.embernet.ai/expose: "true"
     {{- if .Chart.Icon }}
     embernet.ai/app-icon: {{ .Chart.Icon | quote }}
     {{- end }}
