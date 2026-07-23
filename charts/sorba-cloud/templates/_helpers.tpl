@@ -75,16 +75,15 @@ app: {{ .Chart.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use.
+EmberNET tenant labels — injected by the dashboard at deploy time
+(store.go tenantLabels: embernet.ai/tenant, deployed-by, deployment-id). MUST be
+rendered onto BOTH the pod template AND the Service, or the app is invisible to
+every tenant-scoped view and visible only to SuperAdmin (services.go:226) — the
+single most common silent App Store failure. Empty on a bare `helm install`, so
+this is a no-op outside the dashboard path.
 */}}
-{{- define "sorba-cloud.serviceAccountName" -}}
-{{- if .Values.serviceAccount }}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "sorba-cloud.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- else }}
-{{- "default" }}
+{{- define "sorba-cloud.tenantLabels" -}}
+{{- with .Values.tenantLabels }}
+{{- toYaml . }}
 {{- end }}
 {{- end }}

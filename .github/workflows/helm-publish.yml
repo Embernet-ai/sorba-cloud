@@ -30,7 +30,12 @@ jobs:
       - name: Package chart
         run: |
           helm package charts/sorba-cloud -d .
-          helm repo index . --url https://embernet-ai.github.io/sorba-cloud/
+          # Pull the live published index and MERGE into it so previously
+          # published versions are retained. Without --merge, each run rewrites
+          # index.yaml with only the freshly packaged chart, dropping history.
+          curl -fsSL https://embernet-ai.github.io/sorba-cloud/index.yaml -o old-index.yaml || true
+          helm repo index . --url https://embernet-ai.github.io/sorba-cloud/ $( [ -f old-index.yaml ] && echo --merge old-index.yaml )
+          rm -f old-index.yaml
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
