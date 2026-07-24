@@ -69,7 +69,7 @@ Service (read by services.go), not a label. Set in service.yaml.
 {{- define "sorba-cloud.storeLabels" -}}
 embernet.ai/store-app: "true"
 embernet.ai/gui-type: {{ .Values.gui.type | default "web" | quote }}
-embernet.ai/app-name: "SORBA Cloud"
+embernet.ai/app-name: {{ .Chart.Name | quote }}
 embernet.ai/gui-port: {{ .Values.gui.port | default .Values.service.port | quote }}
 app: {{ .Chart.Name }}
 {{- end }}
