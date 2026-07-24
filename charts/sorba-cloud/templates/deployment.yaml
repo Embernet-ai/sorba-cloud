@@ -103,7 +103,18 @@ spec:
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
+            # stock nginx:alpine runs as root; here it runs as uid 65534, which
+            # can't write nginx's default /var/cache/nginx or /var/run — give it
+            # writable emptyDirs so it starts non-root.
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
       volumes:
         - name: nginx-config
           configMap:
             name: {{ include "sorba-cloud.fullname" . }}-bridge-config
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
